@@ -2,6 +2,7 @@ package lexer
 
 import (
 	"monkey-lang/token"
+	"monkey-lang/utils"
 )
 
 type Lexer struct {
@@ -11,6 +12,7 @@ type Lexer struct {
 	ch      byte // current char under examination, represented in byte
 }
 
+// Returns new instance of a lexer
 func New(input string) *Lexer {
 	// GO makes sure lexer doesn't get deallocated since it still has a refernce to it
 	lexer := Lexer{input: input}
@@ -20,13 +22,14 @@ func New(input string) *Lexer {
 	return &lexer
 }
 
+// Returns a token with the correct token literal, and token type.
 func (lexer *Lexer) NextToken() token.Token {
 	var tok token.Token
 
 	lexer.skipWhitespace()
 
 	switch lexer.ch {
-	// Delimiters
+
 	case '{':
 		tok = newToken(token.LBRACE, lexer.ch)
 	case '}':
@@ -41,7 +44,6 @@ func (lexer *Lexer) NextToken() token.Token {
 	case ';':
 		tok = newToken(token.SEMICOLON, lexer.ch)
 
-	// Operators
 	case '=':
 		tok = newToken(token.ASSIGN, lexer.ch)
 	case '+':
@@ -51,16 +53,17 @@ func (lexer *Lexer) NextToken() token.Token {
 		tok.Literal = ""
 		tok.Type = token.EOF
 
-	// Determining if it is a keyword or iden
+	// Handles identifiers and keywords
+	//
 	default:
-		if isLetter(lexer.ch) {
+		if utils.IsLetter(lexer.ch) {
 			tok.Literal = lexer.readIdentifier()
 			tok.Type = token.LookupIdent(tok.Literal)
 
 			// Neccessary to avoid the later readChar() after the switch
 			return tok
 
-		} else if isDigit(lexer.ch) {
+		} else if utils.IsDigit(lexer.ch) {
 			tok.Type = token.INT
 			tok.Literal = lexer.readNumber()
 			return tok
@@ -71,41 +74,6 @@ func (lexer *Lexer) NextToken() token.Token {
 
 	lexer.readChar()
 	return tok
-}
-
-func (lexer *Lexer) readNumber() string {
-	starting_pos := lexer.pos
-	for isDigit(lexer.ch) {
-		lexer.readChar()
-	}
-	return lexer.input[starting_pos:lexer.pos]
-}
-
-func isDigit(ch byte) bool {
-	return '0' <= ch && ch <= '9'
-}
-
-func (lexer *Lexer) skipWhitespace() {
-	for lexer.ch == ' ' || lexer.ch == '\t' || lexer.ch == '\n' || lexer.ch == '\r' {
-		lexer.readChar()
-	}
-}
-
-// Reads until end of the word
-// Returns the keyword / iden
-func (lexer *Lexer) readIdentifier() string {
-	start_pos := lexer.pos
-
-	for isLetter(lexer.ch) {
-		lexer.readChar()
-	}
-
-	return lexer.input[start_pos:lexer.pos]
-}
-
-// True if alpha or _
-func isLetter(ch byte) bool {
-	return 'a' <= ch && ch <= 'z' || 'A' <= ch && ch <= 'Z' || ch == '_'
 }
 
 // Moves pos and readPos until end of input
@@ -121,6 +89,32 @@ func (lexer *Lexer) readChar() {
 	lexer.readPos += 1
 }
 
+func (lexer *Lexer) readNumber() string {
+	starting_pos := lexer.pos
+	for utils.IsDigit(lexer.ch) {
+		lexer.readChar()
+	}
+	return lexer.input[starting_pos:lexer.pos]
+}
+
+// Reads until end of the word
+// Returns the keyword / iden
+func (lexer *Lexer) readIdentifier() string {
+	start_pos := lexer.pos
+
+	for utils.IsLetter(lexer.ch) {
+		lexer.readChar()
+	}
+
+	return lexer.input[start_pos:lexer.pos]
+}
+
 func newToken(tokenType token.TokenType, ch byte) token.Token {
 	return token.Token{Type: tokenType, Literal: string(ch)}
+}
+
+func (lexer *Lexer) skipWhitespace() {
+	for lexer.ch == ' ' || lexer.ch == '\t' || lexer.ch == '\n' || lexer.ch == '\r' {
+		lexer.readChar()
+	}
 }
