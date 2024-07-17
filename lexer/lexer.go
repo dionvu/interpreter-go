@@ -1,5 +1,7 @@
 package lexer
 
+// PG 24
+
 import (
 	"monkey-lang/token"
 	"monkey-lang/utils"
@@ -15,7 +17,8 @@ type Lexer struct {
 // Returns new instance of a lexer
 func New(input string) *Lexer {
 	// GO makes sure lexer doesn't get deallocated since it still has a refernce to it
-	lexer := Lexer{input: input}
+	// ch = 0 is the null byte
+	lexer := Lexer{input: input, pos: -1, readPos: 0, ch: 0}
 
 	lexer.readChar()
 
@@ -30,6 +33,7 @@ func (lexer *Lexer) NextToken() token.Token {
 
 	switch lexer.ch {
 
+	// Bracket and parentheses
 	case '{':
 		tok = newToken(token.LBRACE, lexer.ch)
 	case '}':
@@ -38,16 +42,43 @@ func (lexer *Lexer) NextToken() token.Token {
 		tok = newToken(token.LPAREN, lexer.ch)
 	case ')':
 		tok = newToken(token.RPAREN, lexer.ch)
+
 	case ',':
 		tok = newToken(token.COMMA, lexer.ch)
-
 	case ';':
 		tok = newToken(token.SEMICOLON, lexer.ch)
+	case '/':
+		tok = newToken(token.SLASH, lexer.ch)
 
-	case '=':
-		tok = newToken(token.ASSIGN, lexer.ch)
+	// Operators
 	case '+':
 		tok = newToken(token.PLUS, lexer.ch)
+	case '-':
+		tok = newToken(token.MINUS, lexer.ch)
+	case '*':
+		tok = newToken(token.ASTERISK, lexer.ch)
+	case '<':
+		tok = newToken(token.LT, lexer.ch)
+	case '>':
+		tok = newToken(token.GT, lexer.ch)
+	case '!':
+		if lexer.peekChar() == '=' {
+
+			lexer.readChar()
+
+			tok = token.Token{Type: token.NOT_EQ, Literal: "!="}
+		} else {
+			tok = newToken(token.BANG, '!')
+		}
+	case '=':
+		if lexer.peekChar() == '=' {
+
+			lexer.readChar()
+
+			tok = token.Token{Type: token.EQ, Literal: "=="}
+		} else {
+			tok = newToken(token.ASSIGN, '=')
+		}
 
 	case 0:
 		tok.Literal = ""
@@ -78,6 +109,7 @@ func (lexer *Lexer) NextToken() token.Token {
 
 // Moves pos and readPos until end of input
 func (lexer *Lexer) readChar() {
+	// Next char to read has exceeded the length
 	if len(lexer.input) <= lexer.readPos {
 		lexer.ch = 0 // Indicates ascii code for null or haven't read yet
 	} else {
@@ -95,6 +127,15 @@ func (lexer *Lexer) readNumber() string {
 		lexer.readChar()
 	}
 	return lexer.input[starting_pos:lexer.pos]
+}
+
+func (lexer *Lexer) peekChar() byte {
+	if lexer.pos >= len(lexer.input) {
+		// null
+		return 0
+	} else {
+		return lexer.input[lexer.readPos]
+	}
 }
 
 // Reads until end of the word
